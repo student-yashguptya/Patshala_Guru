@@ -7,6 +7,8 @@ import { auth, db } from "./../config/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { useContext } from "react";
 import { UserDetailContext } from "./../context/UserDetailContext";
+import { useEffect } from "react";
+
 
 
 export default function Index() {
@@ -15,17 +17,20 @@ export default function Index() {
    const {userDetail, setUserDetail} = useContext(UserDetailContext);
 
 
-  onAuthStateChanged(auth,async(user)=> {
-    if(user) {
+  useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
       console.log("User is signed in:", user);
-      const result=await getDoc(doc(db, "users", user?.email));
+      const result = await getDoc(doc(db, "users", user?.email));
       setUserDetail(result.data());
-      router.replace("/");
+      router.replace("/(tabs)/home"); // 👈 or any other route
     } else {
       console.log("No user is signed in.");
-      // User is not signed in, you can redirect to the sign-in page or show a message
     }
   });
+
+  return unsubscribe;
+}, []);
 
   return (
     <View

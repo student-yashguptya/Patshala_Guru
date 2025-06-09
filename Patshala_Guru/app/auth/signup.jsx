@@ -23,7 +23,7 @@ export default function SignUp() {
         .then(async(Resp) => {
           const user = Resp.user;
           console.log('User created successfully:', user);
-          router.replace('/home');
+          router.replace('/(tabs)/home');
           await SaveUser(user);
         })
         .catch(e => {

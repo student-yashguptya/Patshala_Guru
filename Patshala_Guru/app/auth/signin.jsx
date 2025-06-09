@@ -24,7 +24,7 @@ export default function SignIn() {
       console.log('User signed in successfully:', resp.user);
       await getUserDetail();
       setLoading(false);
-      router.replace('/home');
+      router.replace('/(tabs)/home');
     })
     .catch(e => {
       console.log(e);
