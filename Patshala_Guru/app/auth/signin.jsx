@@ -1,10 +1,44 @@
-import { StyleSheet, Image, View, Text, TouchableOpacity } from 'react-native'
+import { StyleSheet, Image, View, Text, TouchableOpacity, ToastAndroid, ActivityIndicator } from 'react-native'
 import React from 'react'
 import Colors from '@/constants/Colors'
 import { TextInput } from 'react-native-gesture-handler'
-import { router } from 'expo-router'
+import { useRouter } from 'expo-router'
+import { useState } from 'react'
+import {signInWithEmailAndPassword } from 'firebase/auth'
+import { auth, db } from './../../config/firebaseConfig'
+import { doc, getDoc } from 'firebase/firestore'
+import { useContext } from 'react'
+import { UserDetailContext } from './../../context/UserDetailContext'
 
-export default function signIn() {
+export default function SignIn() {
+
+  const router=useRouter();
+  const [Email, setEmail] = useState();
+  const [Password, setPassword] = useState();
+  const {userDetail, setUserDetail} = useContext(UserDetailContext);
+  const [loading, setLoading] = useState(false);
+  const onSignInClick = () => {
+    setLoading(true);
+    signInWithEmailAndPassword(auth, Email, Password)
+    .then(async(resp)=>{
+      console.log('User signed in successfully:', resp.user);
+      await getUserDetail();
+      setLoading(false);
+      router.replace('/home');
+    })
+    .catch(e => {
+      console.log(e);
+      setLoading(false);
+      ToastAndroid.show('Incorrect email or password:', ToastAndroid.BOTTOM)
+    })
+  }
+
+  const getUserDetail = async() => {
+    const result = await getDoc(doc(db, 'users',Email));
+    console.log(result.data());
+    setUserDetail(result.data());
+  }
+
   return (
     <View style={styles.container}>
      <Image source={require('./../../assets/images/LOGO Image.png')}
@@ -21,20 +55,28 @@ export default function signIn() {
 
         <TextInput
         placeholder='Enter your Email'
+        value={Email}
+        onChangeText={setEmail}
         style={styles.inputText}/>
 
         <TextInput
         placeholder='Enter Your Password'
+        value={Password}
+        onChangeText={setPassword}
         secureTextEntry={true}
         style={styles.inputText}/>
 
 
         <TouchableOpacity
-                  onPress={() => router.push("/")}
-                    style={styles.signupButton}>
-                    <Text
+                  onPress={onSignInClick}
+                  disabled={loading} 
+                    style={styles.signupButton}
+                    >
+                      {!loading ?<Text
                       style={styles.signupButtonText}
-                    >Sign In</Text>
+                    >Sign In</Text> :
+                            <ActivityIndicator size={'large'} color={Colors.white}/>
+                      }
                   </TouchableOpacity>
 
         <TouchableOpacity
@@ -102,7 +144,7 @@ const styles = StyleSheet.create({
     alreadyHaveAccountText: {
       color: Colors.black,
       textAlign: "center",
-      marginTop: 10,
+      marginTop: 2,
     },
     signInText: {
       color: Colors.black,

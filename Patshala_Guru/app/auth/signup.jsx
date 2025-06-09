@@ -2,9 +2,51 @@ import { StyleSheet, Image, View, Text, TouchableOpacity } from 'react-native'
 import React from 'react'
 import Colors from '@/constants/Colors'
 import { TextInput } from 'react-native-gesture-handler'
-import { router } from 'expo-router'
+import { useRouter } from 'expo-router'
+import { useState } from 'react'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
+import { auth ,db} from './../../config/firebaseConfig'
+import { useContext } from 'react'
+import { UserDetailContext } from './../../context/UserDetailContext'
 
-export default function signIn() {
+export default function SignUp() {
+  const router = useRouter();
+  const [Name, setName] = useState('');
+   const [Email, setEmail] = useState('');
+    const [Password, setPassword] = useState('');
+
+    const{userDetail, setUserDetail} = useContext(UserDetailContext);
+
+    const CreateNewAccount = () => {
+      createUserWithEmailAndPassword(auth, Email, Password)
+        .then(async(Resp) => {
+          const user = Resp.user;
+          console.log('User created successfully:', user);
+          router.replace('/home');
+          await SaveUser(user);
+        })
+        .catch(e => {
+          console.error('Error creating user:', e);
+          alert(e.message);
+        })
+    }
+
+    const SaveUser= async(user) => {
+
+      const data={
+        Name: Name,
+        Email: Email, 
+        member:false,
+        uid: user?.uid,
+      }
+
+
+      await setDoc(doc(db, "users", Email),data )
+
+      setUserDetail(data);
+    }
+
   return (
     <View style={styles.container}>
      <Image source={require('./../../assets/images/LOGO Image.png')}
@@ -21,16 +63,24 @@ export default function signIn() {
 
         <TextInput
   placeholder='Enter your Name'
+  value={Name}
+  onChangeText={setName}
+
   style={styles.inputText}
 />
 
 <TextInput
   placeholder='Enter your Email'
+  value={Email}
+  onChangeText={setEmail}
+  keyboardType='email-address'
   style={styles.inputText}
 />
 
 <TextInput
   placeholder='Create a Password'
+  value={Password}
+  onChangeText={setPassword}
   secureTextEntry={true}
   style={styles.inputText}
 />
@@ -43,7 +93,7 @@ export default function signIn() {
 
 
         <TouchableOpacity
-                  onPress={() => router.push("/")}
+                  onPress={() =>{CreateNewAccount()}}
                     style={styles.signupButton}>
                     <Text
                       style={styles.signupButtonText}
@@ -115,7 +165,7 @@ const styles = StyleSheet.create({
     alreadyHaveAccountText: {
       color: Colors.black,
       textAlign: "center",
-      marginTop: 10,
+      marginTop: 2,
     },
     signInText: {
       color: Colors.black,

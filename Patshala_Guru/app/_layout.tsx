@@ -1,7 +1,9 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { UserDetailContext } from "./../context/UserDetailContext";
 import React from "react";
+import { useState } from "react";
 
 
 export default function RootLayout() {
@@ -18,11 +20,14 @@ export default function RootLayout() {
     "Outfit-Thin": require("./../assets/fonts/Outfit-Thin.ttf"),
   })
 
+  const [userDetail,setUserDetail]=useState();
+
   return(
-    
+    <UserDetailContext.Provider value={{userDetail, setUserDetail }}>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }} />
     </GestureHandlerRootView>
+    </UserDetailContext.Provider>
   );
   
 }

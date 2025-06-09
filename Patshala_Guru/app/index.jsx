@@ -1,9 +1,31 @@
 import { Image, Text, View, StyleSheet, TouchableOpacity } from "react-native";
 import Colors from "./../constants/Colors";
 import React from "react";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "./../config/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import { useContext } from "react";
+import { UserDetailContext } from "./../context/UserDetailContext";
+
 
 export default function Index() {
+
+  const router = useRouter();
+   const {userDetail, setUserDetail} = useContext(UserDetailContext);
+
+
+  onAuthStateChanged(auth,async(user)=> {
+    if(user) {
+      console.log("User is signed in:", user);
+      const result=await getDoc(doc(db, "users", user?.email));
+      setUserDetail(result.data());
+      router.replace("/");
+    } else {
+      console.log("No user is signed in.");
+      // User is not signed in, you can redirect to the sign-in page or show a message
+    }
+  });
 
   return (
     <View
@@ -86,7 +108,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 50,
     alignItems: "center",
-    marginTop: 70,
+    marginTop: 20,
   },
   getStartedButtonText: {
     color: Colors.black,
@@ -96,7 +118,7 @@ const styles = StyleSheet.create({
   alreadyHaveAccountText: {
     color: Colors.white,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 2,
     
   },
   signInText: {
