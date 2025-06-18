@@ -1,9 +1,18 @@
-import { prompt } from '@/constants/Prompts'; // <-- adjust path if needed
+import { prompt } from '@/constants/Prompts';
+
+const cleanGeminiResponse = (text) => {
+  return text
+    .replace(/```json\n?/, '')
+    .replace(/```/, '')
+    .replace(/^\s*\[/, '')     // remove leading [
+    .replace(/\]\s*$/, '')     // remove trailing ]
+    .trim();
+};
 
 export const generateCourseOutline = async (courseName, apiKey) => {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-  const fullPrompt = `${prompt.IDEA}\nTopic: "${courseName}"`; // or prompt.COURSE for full content
+  const fullPrompt = `${prompt.IDEA}\nTopic: "${courseName}"`;
 
   const body = {
     contents: [
@@ -29,13 +38,20 @@ export const generateCourseOutline = async (courseName, apiKey) => {
     const data = await response.json();
     console.log('Gemini API raw response:', JSON.stringify(data, null, 2));
 
-    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      return data.candidates[0].content.parts[0].text;
-    } else {
-      throw new Error("No valid text in Gemini response");
+    // Try to extract the actual text content
+    const rawText =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.text ||
+      '';
+
+    if (!rawText.trim()) {
+      throw new Error("Empty or missing text in Gemini response");
     }
+
+    const cleanedText = cleanGeminiResponse(rawText);
+    return cleanedText;
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return null;
+    return null; // important for fail-safe fallback
   }
 };

@@ -1,25 +1,123 @@
-import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
-import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+} from 'react-native';
+import React, { useContext, useState } from 'react';
 import Colors from '../../constants/Colors';
 import Button from '../../Shared/button';
+import { prompt } from '@/constants/Prompts';
 import { generateCourseOutline } from '../../config/geminiApi';
+import { db } from './../../config/firebaseConfig';
+import { UserDetailContext } from './../../context/UserDetailContext';
+import { useRouter } from 'expo-router';
+import { doc, setDoc } from 'firebase/firestore';
 
-const GEMINI_API_KEY = 'AIzaSyDMvaJmysUMCMvA51vTxAeFZkYk9PrzWwo'; // Replace with your actual key
+const GEMINI_API_KEY = 'AIzaSyDMvaJmysUMCMvA51vTxAeFZkYk9PrzWwo';
 
 export default function AddCoursePage() {
   const [loading, setLoading] = useState(false);
   const [courseName, setCourseName] = useState('');
-  const [courseOutline, setCourseOutline] = useState('');
+  const [topics, setTopics] = useState([]);
+  const [selectedTopic, setSelectedTopics] = useState([]);
+  const [courseContent, setCourseContent] = useState('');
+  const {userDetail, setUserDetail} = useContext(UserDetailContext)
+  const router=useRouter();
 
   const onGenerateTopic = async () => {
     if (!courseName.trim()) return;
     setLoading(true);
-    const result = await generateCourseOutline(courseName, GEMINI_API_KEY);
-    if (result) {
-      setCourseOutline(result);
-    } else {
-      setCourseOutline('Failed to generate course outline. Please try again.');
+
+    try {
+      const result = await generateCourseOutline(courseName, GEMINI_API_KEY);
+      let parsedTopics = [];
+
+      try {
+        parsedTopics = JSON.parse(result);
+        if (!Array.isArray(parsedTopics)) throw new Error();
+      } catch {
+        parsedTopics = result
+          ? result
+              .split('\n')
+              .filter(Boolean)
+              .map(item => item.replace(/^[\s*-]+\s*/, '').replace(/["']/g, ''))
+          : [];
+      }
+
+      setTopics(parsedTopics);
+    } catch (error) {
+      console.error('Topic Generation Failed:', error);
     }
+
+    setLoading(false);
+  };
+
+  const onTopicSelect = topic => {
+    const isAlreadyExist = selectedTopic.includes(topic);
+    if (!isAlreadyExist) {
+      setSelectedTopics(prev => [...prev, topic]);
+    } else {
+      const updated = selectedTopic.filter(item => item !== topic);
+      setSelectedTopics(updated);
+    }
+  };
+
+  const isTopicSelected = topic => {
+    return selectedTopic.includes(topic);
+  };
+ const onGenerateCourse = async () => {
+    if (selectedTopic.length === 0) return;
+
+    setLoading(true);
+    try {
+      const topicsAsString = selectedTopic.join(', ');
+      const coursePrompt = `${topicsAsString}\n${prompt.COURSE}`;
+
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const body = {
+        contents: [
+          {
+            parts: [{ text: coursePrompt }],
+          },
+        ],
+      };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+      const rawText =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.text ||
+        '';
+
+      if (!rawText.trim()) throw new Error('Empty or missing text in Gemini response');
+
+      setCourseContent(rawText.trim());
+
+      // --- Save to Firestore ---
+      await setDoc(doc(db, 'Courses', Date.now().toString()), {
+        name: courseName,
+        topics: selectedTopic,
+        content: rawText.trim(),
+        createdOn: new Date(),
+        createdBy: userDetail?.email || 'unknown',
+      });
+
+      Alert.alert('Success', 'Course saved');
+      router.push('/(tabs)/home')
+    } catch (error) {
+      console.error('Course Generation or Save Failed:', error);
+      Alert.alert('Error', 'Something went wrong while saving the course.');
+    }
+
     setLoading(false);
   };
 
@@ -28,12 +126,13 @@ export default function AddCoursePage() {
       <Text style={styles.title}>Create New Course</Text>
       <Text style={styles.subtitle}>What you want to learn today?</Text>
       <Text style={styles.description}>
-        Please enter the course name you want to create. This will help us to create a better course for you.
-        (Ex: Learn Python, Digital Marketing, 10th Science Chapters, etc.)
+        Please enter the course name you want to create. This will help us to
+        create a better course for you. (Ex: Learn Python, Digital Marketing,
+        10th Science Chapters, etc.)
       </Text>
 
       <TextInput
-        placeholder='(Ex: Learn Python, Digital Marketing...)'
+        placeholder='(Ex: Learn Python, Digital Marketing ,10th Science Chapters, etc.)'
         style={styles.input}
         numberOfLines={4}
         multiline={true}
@@ -41,13 +140,65 @@ export default function AddCoursePage() {
         onChangeText={setCourseName}
       />
 
-      <Button text={'Create Course'} type='outline' onPress={onGenerateTopic} loading={loading} />
+      <Button
+        text={'Generate Topic'}
+        type='outline'
+        onPress={onGenerateTopic}
+        loading={loading}
+      />
 
-      {courseOutline.length > 0 && (
-        <View style={styles.resultBox}>
-          <Text style={styles.resultText}>{courseOutline}</Text>
-        </View>
-      )}
+      <View style={{ marginTop: 20 }}>
+        <Text style={styles.topicHeader}>
+          Select all topics which you want to add in the course
+        </Text>
+
+        {topics.length > 0 && (
+          <View style={styles.topicsContainer}>
+            {topics.map((item, index) => (
+              <Pressable
+                key={index}
+                onPress={() => onTopicSelect(item)}
+                style={[
+                  styles.topicPill,
+                  {
+                    backgroundColor: isTopicSelected(item)
+                      ? Colors.primary
+                      : Colors.lightGray,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: isTopicSelected(item)
+                      ? Colors.white
+                      : Colors.black,
+                    fontFamily: 'Outfit-Medium',
+                  }}
+                >
+                  {item}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {selectedTopic.length > 0 && (
+          <Button
+            text='Generate Course'
+            onPress={onGenerateCourse}
+            loading={loading}
+          />
+        )}
+
+        {courseContent && (
+          <View style={{ marginBottom: 30 }}>
+            {/* <Text style={styles.topicHeader}>Generated Course</Text>
+            <Text style={{ fontFamily: 'Outfit-Regular', fontSize: 16 }}>
+              {courseContent}
+            </Text> */}
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -86,15 +237,22 @@ const styles = StyleSheet.create({
     height: 100,
     alignItems: 'flex-start',
   },
-  resultBox: {
-    marginTop: 20,
-    padding: 15,
-    borderRadius: 12,
-    backgroundColor: '#f2f2f2',
+  topicHeader: {
+    fontFamily: 'Outfit',
+    fontSize: 20,
+    marginBottom: 10,
   },
-  resultText: {
-    fontFamily: 'Outfit-Regular',
-    fontSize: 16,
-    color: Colors.black,
+  topicsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  topicPill: {
+    borderRadius: 100,
+    borderWidth: 1,
+    padding: 7,
+    paddingHorizontal: 15,
+    marginRight: 8,
+    
   },
 });
