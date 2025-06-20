@@ -13,5 +13,7 @@ export default
     bg_gray: '#f2f2f2',
     gray: '#858585',
     light_gray: '#D3D3D3',
+    blue:'#007AFF',
+    Green: '#4CAF50',
     
 }

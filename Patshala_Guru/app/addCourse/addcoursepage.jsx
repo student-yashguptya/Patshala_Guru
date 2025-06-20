@@ -16,6 +16,8 @@ import { db } from './../../config/firebaseConfig';
 import { UserDetailContext } from './../../context/UserDetailContext';
 import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore';
+import { imageAssets } from '../../constants/Option';
+
 
 const GEMINI_API_KEY = 'AIzaSyDMvaJmysUMCMvA51vTxAeFZkYk9PrzWwo';
 
@@ -25,17 +27,18 @@ export default function AddCoursePage() {
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopics] = useState([]);
   const [courseContent, setCourseContent] = useState('');
-  const {userDetail, setUserDetail} = useContext(UserDetailContext)
-  const router=useRouter();
+  const { userDetail } = useContext(UserDetailContext);
+  const router = useRouter();
+
+  const bannerKeys = Object.keys(imageAssets); // ['banner1.png', 'banner2.png']
+
 
   const onGenerateTopic = async () => {
     if (!courseName.trim()) return;
     setLoading(true);
-
     try {
       const result = await generateCourseOutline(courseName, GEMINI_API_KEY);
       let parsedTopics = [];
-
       try {
         parsedTopics = JSON.parse(result);
         if (!Array.isArray(parsedTopics)) throw new Error();
@@ -47,12 +50,11 @@ export default function AddCoursePage() {
               .map(item => item.replace(/^[\s*-]+\s*/, '').replace(/["']/g, ''))
           : [];
       }
-
       setTopics(parsedTopics);
     } catch (error) {
       console.error('Topic Generation Failed:', error);
+      Alert.alert('Error', 'Failed to generate topics');
     }
-
     setLoading(false);
   };
 
@@ -69,9 +71,9 @@ export default function AddCoursePage() {
   const isTopicSelected = topic => {
     return selectedTopic.includes(topic);
   };
- const onGenerateCourse = async () => {
-    if (selectedTopic.length === 0) return;
 
+  const onGenerateCourse = async () => {
+    if (selectedTopic.length === 0) return;
     setLoading(true);
     try {
       const topicsAsString = selectedTopic.join(', ');
@@ -79,11 +81,7 @@ export default function AddCoursePage() {
 
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
       const body = {
-        contents: [
-          {
-            parts: [{ text: coursePrompt }],
-          },
-        ],
+        contents: [{ parts: [{ text: coursePrompt }] }],
       };
 
       const response = await fetch(endpoint, {
@@ -98,26 +96,48 @@ export default function AddCoursePage() {
         data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.text ||
         '';
 
-      if (!rawText.trim()) throw new Error('Empty or missing text in Gemini response');
-
+      if (!rawText.trim()) throw new Error('Empty or invalid Gemini response');
       setCourseContent(rawText.trim());
 
-      // --- Save to Firestore ---
-      await setDoc(doc(db, 'Courses', Date.now().toString()), {
-        name: courseName,
-        topics: selectedTopic,
-        content: rawText.trim(),
-        createdOn: new Date(),
-        createdBy: userDetail?.email || 'unknown',
-      });
+      // Parse JSON
+     let parsed;
+try {
+  const jsonStart = rawText.indexOf('{');
+  const jsonEnd = rawText.lastIndexOf('}');
+  const jsonString = rawText.slice(jsonStart, jsonEnd + 1);
 
-      Alert.alert('Success', 'Course saved');
-      router.push('/(tabs)/home')
-    } catch (error) {
-      console.error('Course Generation or Save Failed:', error);
-      Alert.alert('Error', 'Something went wrong while saving the course.');
+  parsed = JSON.parse(jsonString);
+} catch (err) {
+  console.error('Parsing error:', err, rawText);
+  Alert.alert('Error', 'Failed to parse course content JSON. Try regenerating.');
+  setLoading(false);
+  return;
+}
+
+
+      const courseArray = parsed?.courses || [];
+      for (const course of courseArray) {
+        const DocID=Date.now().toString()
+       await setDoc(doc(db, 'Courses', DocID), {
+        courseTitle: course.courseTitle,
+        description: course.description,
+        banner_image: course.banner_image ?? bannerKeys[Math.floor(Math.random() * bannerKeys.length)],
+        createdOn: new Date(),
+        createdBy: userDetail?.Email ?? 'anonymous@unknown.com',
+        chapters: course.chapters ?? [],
+        quiz: course.quiz ?? [],
+        flashcards: course.flashcards ?? [],
+        qa: course.qa ?? [],
+        DocID: DocID
+      });
     }
 
+      Alert.alert('Success', 'Course(s) saved to Firestore');
+      router.push('/(tabs)/home');
+    } catch (error) {
+      console.error('Course Generation or Save Failed:', error);
+      Alert.alert('Error', 'Something went wrong while generating or saving the course.');
+    }
     setLoading(false);
   };
 
@@ -192,10 +212,7 @@ export default function AddCoursePage() {
 
         {courseContent && (
           <View style={{ marginBottom: 30 }}>
-            {/* <Text style={styles.topicHeader}>Generated Course</Text>
-            <Text style={{ fontFamily: 'Outfit-Regular', fontSize: 16 }}>
-              {courseContent}
-            </Text> */}
+            {/* You can optionally display raw course content here for debugging */}
           </View>
         )}
       </View>
@@ -253,6 +270,5 @@ const styles = StyleSheet.create({
     padding: 7,
     paddingHorizontal: 15,
     marginRight: 8,
-    
   },
 });
