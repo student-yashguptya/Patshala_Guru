@@ -15,5 +15,6 @@ export default
     light_gray: '#D3D3D3',
     blue:'#007AFF',
     Green: '#4CAF50',
+    lg_green:'#dbffdd'
     
 }

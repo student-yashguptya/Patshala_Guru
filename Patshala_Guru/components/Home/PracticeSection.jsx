@@ -1,8 +1,10 @@
-import { View, Text, FlatList, Image } from 'react-native';
-import React from 'react';
+import { View, Text, FlatList, Image, TouchableOpacity } from 'react-native';
+import {useRouter} from 'expo-router';
 import { PracticeOption } from '../../constants/Option';
 
 export default function PracticeSection() {
+
+  const router=useRouter();
   return (
     <View style={{ marginTop: 10 }}>
       <Text style={{ fontFamily: 'Outfit-Bold', fontSize: 25, marginBottom: 10 }}>
@@ -19,7 +21,8 @@ export default function PracticeSection() {
           marginBottom: 20,
         }}
         renderItem={({ item }) => (
-          <View
+          <TouchableOpacity
+          onPress={()=>router.push('/Practice/'+item.name)}
             style={{
               width: 100, 
               alignItems: 'center',
@@ -35,7 +38,7 @@ export default function PracticeSection() {
                 resizeMode: 'cover',
               }}
             />
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>
