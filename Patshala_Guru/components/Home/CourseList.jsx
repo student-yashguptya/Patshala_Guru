@@ -4,12 +4,12 @@ import Colors from '../../constants/Colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
-export default function CourseList({ courseList }) {
+export default function CourseList({ courseList ,heading='Courses'}) {
   const route = useRouter();
 
   return (
     <View style={{ marginTop: 10 }}>
-      <Text style={{ fontFamily: 'Outfit-Bold', fontSize: 25 }}>Courses</Text>
+      <Text style={{ fontFamily: 'Outfit-Bold', fontSize: 25 }}>{heading}</Text>
 
       {courseList.length === 0 ? (
         <Text style={{ fontFamily: 'Outfit' }}>No courses available.</Text>

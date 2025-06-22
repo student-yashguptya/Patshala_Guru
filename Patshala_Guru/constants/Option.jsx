@@ -3,16 +3,19 @@ export const PracticeOption = [
     name: 'Quiz',
     image: require('./../assets/images/Quizz.png'),
     icon: require('./../assets/images/Quiz.png'),
+    path:'/quiz'
   },
   {
     name: 'Flashcards',
     image: require('./../assets/images/Flashcards.png'),
     icon: require('./../assets/images/layers.png'),
+    path:'/flashCard'
   },
   {
     name: 'Question & Ans',
     image: require('./../assets/images/Q&A.png'),
     icon: require('./../assets/images/qa.png'),
+    path:'/quesAns'
   },
 ];
 
@@ -25,3 +28,33 @@ export const imageAssets = {
   '/banner6.png': require('./../assets/images/banner6.png'),
   '/banner7.png': require('./../assets/images/Banner7.png'),
 };
+
+export const CourseCategory = ["Tech & Coding", "Business & Finance", "Health & Fitness", "Science & Engineering", "Arts & Creativity"]
+
+export const ProfileMenu = [
+    {
+        name: 'Add Course',
+        icon: 'add-outline', //Ionic Icons 
+        path: '/addCourse'
+    },
+    {
+        name: 'My Course',
+        icon: 'book', //Ionic Icons 
+        path: '/(tabs)/home'
+    },
+    {
+        name: 'Course Progress',
+        icon: 'analytics-outline', //Ionic Icons 
+        path: '/(tabs)/progress'
+    },
+    {
+        name: 'My Subscription',
+        icon: 'shield-checkmark', //Ionic Icons 
+        path: ''
+    },
+    {
+        name: 'Logout',
+        icon: 'log-out', //Ionic Icons 
+        path: '/login'
+    }
+]

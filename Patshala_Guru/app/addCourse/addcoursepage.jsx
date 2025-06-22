@@ -119,17 +119,19 @@ try {
       for (const course of courseArray) {
         const DocID=Date.now().toString()
        await setDoc(doc(db, 'Courses', DocID), {
-        courseTitle: course.courseTitle,
-        description: course.description,
-        banner_image: course.banner_image ?? bannerKeys[Math.floor(Math.random() * bannerKeys.length)],
-        createdOn: new Date(),
-        createdBy: userDetail?.Email ?? 'anonymous@unknown.com',
-        chapters: course.chapters ?? [],
-        quiz: course.quiz ?? [],
-        flashcards: course.flashcards ?? [],
-        qa: course.qa ?? [],
-        DocID: DocID
-      });
+       courseTitle: course.courseTitle,
+       description: course.description,
+       banner_image: course.banner_image ?? bannerKeys[Math.floor(Math.random() * bannerKeys.length)],
+       category: course.category ?? 'Tech & Coding', // default fallback
+       createdOn: new Date(),
+       createdBy: userDetail?.Email ?? 'anonymous@unknown.com',
+       chapters: course.chapters ?? [],
+       quiz: course.quiz ?? [],
+       flashcards: course.flashcards ?? [],
+       qa: course.qa ?? [],
+       DocID: DocID
+     });
+
     }
 
       Alert.alert('Success', 'Course(s) saved to Firestore');
