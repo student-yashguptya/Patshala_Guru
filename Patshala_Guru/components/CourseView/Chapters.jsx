@@ -1,78 +1,90 @@
-import { View, Text, FlatList,StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Colors from '../../constants/Colors';
-import {useRouter} from 'expo-router';
+import { useRouter } from 'expo-router';
 
-export default function Chapters({course}) {
-  const route=useRouter();
+export default function Chapters({ course }) {
+  const route = useRouter();
 
   const isChapterCompleted = (index) => {
-  if (!Array.isArray(course?.completedChapter)) return false;
-  return course.completedChapter.includes(index);
-};
+    if (!Array.isArray(course?.completedChapter)) return false;
+    return course.completedChapter.includes(index);
+  };
 
   return (
-    <View
-    style={{
-        padding:20
-    }}
-    >
-      <Text
-      style={{
-        fontFamily:"Outfit-Bold",
-        fontSize:25
-      }}
-      >Chapters</Text>
+    <View style={styles.container}>
+      <Text style={styles.header}>Chapters</Text>
 
       <FlatList
-      data={course?.chapters}
-
-    renderItem={({item,index}) =>(
-        <TouchableOpacity
-        onPress={() =>{
-          route.push({
-            pathname:'/ChapterView',
-            params:{
-              chapterParams: JSON.stringify(item),
-              DocID: course?.DocID,
-              chapterIndex:index
-            }
-          })
-        }}
-        style={{
-            padding:18,
-            borderWidth:1,
-            borderRadius:15,
-            marginTop:10,
-            display:'flex',
-            flexDirection:'row',
-            justifyContent:'space-between',
-            alignItems:'center'
-        }}
-        >
-            <View  style={{
-                display:'flex',
-                flexDirection:'row',
-                gap:10,
-                
-            }}>
-                <Text  style={styles.chapterText}>{index+1}.</Text>
-                <Text  style={styles.chapterText}>{item.chapterName}</Text>
+        data={course?.chapters}
+        keyExtractor={(_, index) => index.toString()}
+        renderItem={({ item, index }) => (
+          <TouchableOpacity
+            onPress={() => {
+              route.push({
+                pathname: '/ChapterView',
+                params: {
+                  chapterParams: JSON.stringify(item),
+                  DocID: course?.DocID,
+                  chapterIndex: index
+                }
+              });
+            }}
+            style={styles.chapterBox}
+          >
+            <View style={styles.chapterInfo}>
+              <Text style={styles.chapterNumber}>{index + 1}.</Text>
+              <Text style={styles.chapterTitle}>{item.chapterName}</Text>
             </View>
-            {isChapterCompleted(index)?(
-            <Ionicons name="checkmark-done" size={24} color={Colors.Green} />)
-              :(<Ionicons name="play" size={24} color={Colors.primary} />)
-              }
-        </TouchableOpacity>
-    )}
+            <Ionicons
+              name={isChapterCompleted(index) ? 'checkmark-done' : 'play'}
+              size={22}
+              color={isChapterCompleted(index) ? Colors.Green : Colors.primary}
+            />
+          </TouchableOpacity>
+        )}
       />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
- chapterText:{
-    fontFamily:"Outfit-SemiBold",
-    fontSize:20
- }
+  container: {
+    padding: 20,
+    paddingBottom: 10,
+  },
+  header: {
+    fontFamily: 'Outfit-Bold',
+    fontSize: 25,
+    marginBottom: 10,
+  },
+  chapterBox: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  chapterInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+    gap: 10,
+  },
+  chapterNumber: {
+    fontFamily: 'Outfit-SemiBold',
+    fontSize: 18,
+    color: '#333',
+  },
+  chapterTitle: {
+    fontFamily: 'Outfit-SemiBold',
+    fontSize: 18,
+    color: '#333',
+    flexShrink: 1,
+    flexWrap: 'wrap',
+  }
 });

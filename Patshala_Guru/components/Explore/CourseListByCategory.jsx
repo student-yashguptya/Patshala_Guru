@@ -1,58 +1,48 @@
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { collection, doc, getDocs, orderBy, query, where } from 'firebase/firestore'
-import { db } from '../../config/firebaseConfig'
-import { useRouter } from 'expo-router';
-import { imageAssets } from '../../constants/Option';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import Colors from '../../constants/Colors';
-import CourseList from '../Home/CourseList';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../config/firebaseConfig';
+import { useEffect, useState } from 'react';
+import CourseList from './../Home/CourseList';
+import { View, ActivityIndicator } from 'react-native';
+import Colors from '../../constants/Colors'; // Make sure this file exports a primary color
 
-export default function CourseListByCategory({category}) {
+export default function CourseListByCategory({ category }) {
+  const [courseList, setCourseList] = useState([]);
+  const [loading, setLoading] = useState(true); // ✅ Loader state
 
-    const [courseList,setCourseList]=useState([]);
-    const [loading,setLoading]=useState(false);
-    const route = useRouter();
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const q = query(
+          collection(db, 'Courses'),
+          where('category', '==', category)
+        );
+        const querySnapshot = await getDocs(q);
+        const courses = querySnapshot.docs.map(doc => ({
+          DocID: doc.id,            // ✅ Include DocID
+          ...doc.data(),
+        }));
+        setCourseList(courses);
+      } catch (error) {
+        console.error(`Error fetching courses for ${category}:`, error);
+      } finally {
+        setLoading(false); // ✅ Stop loader once fetch is complete
+      }
+    };
 
-    useEffect(()=>{
-        GetCourseListByCategory();
-    },[])
+    fetchCourses();
+  }, [category]);
 
-    const GetCourseListByCategory = async ()=>{
-        setLoading(true);
-        setCourseList([]);
-        const q=query(collection(db,'Courses'),
-        where('category','==',category),orderBy('createdOn','desc'))
-
-        const querySnapShot=await getDocs(q)
-        querySnapShot.forEach((doc)=>{
-            console.log('------------',doc.data());
-            setCourseList(prev=>[...prev,doc.data()])
-        })
-        setLoading(false);
-    }
-
-  return  (
-    <View>
-      { courseList?.length>0 && <CourseList courseList={courseList} heading={category}/>}
-
+  return (
+    <View style={{ paddingVertical: 10 }}>
+      {loading ? (
+        <ActivityIndicator size="large" color={Colors.primary} />
+      ) : (
+        courseList?.length > 0 && (
+          <CourseList courseList={courseList} heading={category} 
+          enroll={true}
+          />
+        )
+      )}
     </View>
-  )
+  );
 }
-
-
-const styles = StyleSheet.create({
-  courseContainer: {
-    padding: 5,
-    backgroundColor: Colors.bg_gray,
-    margin: 6,
-    borderRadius: 15,
-    width: 260,
-  },
-  chapterRow: {
-    flexDirection: 'row',
-    gap: 5,
-    alignItems: 'center',
-    marginTop: 5,
-  },
-});

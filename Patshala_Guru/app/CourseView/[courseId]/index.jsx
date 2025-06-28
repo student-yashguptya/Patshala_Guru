@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 export default function CourseView() {
 
 
-    const {courseParams,courseId}=useLocalSearchParams();
+    const {courseParams,courseId,enroll='false'}=useLocalSearchParams();
 
     const [course,setCourse]=useState([]);
     // const course=JSON.parse(courseParams);
@@ -40,7 +40,7 @@ export default function CourseView() {
             backgroundColor:Colors.white,
             flex:1
         }}>
-       <Intro course={course} />
+       <Intro course={course} enroll={enroll==='true'}/>
        <Chapters course={course}/>
     </View>
         }/>

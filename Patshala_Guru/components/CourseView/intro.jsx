@@ -4,9 +4,34 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import Colors from '../../constants/Colors';
 import Button from '../../Shared/button';
 import { useRouter } from 'expo-router';
+import { useContext, useState } from 'react';
+import {UserDetailContext} from './../../context/UserDetailContext'
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/config/firebaseConfig';
 
-export default function Intro({course}) {
+export default function Intro({course ,enroll}) {
     const route=useRouter();
+    const [loading, setLoading] = useState(false);
+    const {userDetail,setUserDtail}=useContext(UserDetailContext)
+    const onEnrollCourse=async()=>{
+      const DocID=Date.now().toString();
+      setLoading(true);
+      const data={
+        ...course,
+        createdBy:userDetail?.Email,
+        createdOn:new Date(),
+        enrolled:true
+      }
+      await setDoc(doc(db,'Courses',DocID), data)
+      route.replace({
+                pathname:'/CourseView/'+DocID,
+                params:{
+                  courseParams:JSON.stringify(data),
+                  enroll:false
+                }
+              })
+      setLoading(false);
+    }
   return (
     <View>
       
@@ -32,10 +57,14 @@ export default function Intro({course}) {
                <Text style={{fontFamily:"Outfit",fontSize:16,color:Colors.gray}}>{course?.description}</Text>
       </View>
 
+      {enroll?<Button text={'Enroll Now'}
+      loading={loading}
+      onPress={()=>onEnrollCourse()}
+      />:
       <Button
       text={'Start Now'}
-      onPress={()=>console.log('Start Now Pressed')}
-      />
+      onPress={()=>('hehehehe')}
+      />}
 
       <Pressable style={{
         position:"absolute",

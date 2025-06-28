@@ -4,8 +4,8 @@ const cleanGeminiResponse = (text) => {
   return text
     .replace(/```json\n?/, '')
     .replace(/```/, '')
-    .replace(/^\s*\[/, '')     // remove leading [
-    .replace(/\]\s*$/, '')     // remove trailing ]
+    .replace(/^\s*\[/, '')
+    .replace(/\]\s*$/, '')
     .trim();
 };
 
@@ -23,7 +23,11 @@ export const generateCourseOutline = async (courseName, apiKey) => {
           }
         ]
       }
-    ]
+    ],
+    generationConfig: {
+      maxOutputTokens: 8192, // Increase token limit
+      temperature: 0.7,
+    }
   };
 
   try {
@@ -35,10 +39,13 @@ export const generateCourseOutline = async (courseName, apiKey) => {
       body: JSON.stringify(body),
     });
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
     console.log('Gemini API raw response:', JSON.stringify(data, null, 2));
 
-    // Try to extract the actual text content
     const rawText =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.text ||
@@ -52,6 +59,6 @@ export const generateCourseOutline = async (courseName, apiKey) => {
     return cleanedText;
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return null; // important for fail-safe fallback
+    return null;
   }
 };
