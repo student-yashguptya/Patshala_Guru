@@ -43,7 +43,7 @@ export default function Home() {
       flex: 1,
       backgroundColor: Colors.white,
       padding: 25,
-      paddingTop: Platform.OS === 'ios' && 45, // Adjust padding for Android status bar
+      paddingTop: Platform.OS === 'ios' && 45,
     }}>
      <Header/>
      {courseList?.length==0?

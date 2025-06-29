@@ -3,11 +3,11 @@ import { db } from '../../config/firebaseConfig';
 import { useEffect, useState } from 'react';
 import CourseList from './../Home/CourseList';
 import { View, ActivityIndicator } from 'react-native';
-import Colors from '../../constants/Colors'; // Make sure this file exports a primary color
+import Colors from '../../constants/Colors'; 
 
 export default function CourseListByCategory({ category }) {
   const [courseList, setCourseList] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ Loader state
+  const [loading, setLoading] = useState(true); 
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -18,14 +18,14 @@ export default function CourseListByCategory({ category }) {
         );
         const querySnapshot = await getDocs(q);
         const courses = querySnapshot.docs.map(doc => ({
-          DocID: doc.id,            // ✅ Include DocID
+          DocID: doc.id,          
           ...doc.data(),
         }));
         setCourseList(courses);
       } catch (error) {
         console.error(`Error fetching courses for ${category}:`, error);
       } finally {
-        setLoading(false); // ✅ Stop loader once fetch is complete
+        setLoading(false);
       }
     };
 

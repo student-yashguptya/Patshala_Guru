@@ -1,4 +1,4 @@
-// Fixed AddCoursePage.js - Main component with better error handling
+
 import {
   View,
   Text,

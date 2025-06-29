@@ -74,6 +74,8 @@ export default function Index() {
   );
 }
 
+
+
 const styles = StyleSheet.create({
   container1: {
     //flex: 1,

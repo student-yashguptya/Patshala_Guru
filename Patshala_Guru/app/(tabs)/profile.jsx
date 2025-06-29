@@ -1,17 +1,32 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import React, { useContext } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Image,
+
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../config/firebaseConfig'; // adjust path as per your project
-
-import { useContext } from 'react';
+import { auth } from '../../config/firebaseConfig';
 import { UserDetailContext } from './../../context/UserDetailContext';
+
+
 
 export default function Profile() {
   const { userDetail, setUserDetail } = useContext(UserDetailContext);
-
   const router = useRouter();
+
+  const menuItems = [
+    { name: 'Add Course', icon: 'add-circle-outline' },
+    { name: 'My Course', icon: 'book-outline' },
+    { name: 'Course Progress', icon: 'trending-up-outline' },
+    { name: 'My Subscription', icon: 'card-outline' },
+    { name: 'Logout', icon: 'log-out-outline' },
+  ];
 
   const onMenuClick = (menu) => {
     if (menu.name === 'Logout') {
@@ -27,7 +42,7 @@ export default function Profile() {
               signOut(auth)
                 .then(() => {
                   setUserDetail(null);
-                  router.replace("./index");
+                  router.replace('/');
                 })
                 .catch((error) => {
                   Alert.alert('Error', error.message);
@@ -37,62 +52,105 @@ export default function Profile() {
         ],
         { cancelable: true }
       );
+    } else {
+      switch (menu.name) {
+        case 'Add Course':
+          router.push('/addCourse/addcoursepage');
+          break;
+        case 'My Course':
+          router.push('/(tabs)/home');
+          break;
+        case 'Course Progress':
+          router.push('/(tabs)/progress');
+          break;
+        case 'My Subscription':
+          router.push('/');
+          break;
+        default:
+          Alert.alert(menu.name);
+          break;
+      }
     }
   };
 
-  const menuItems = [
-    { name: 'Add Course', icon: 'add-circle-outline' },
-    { name: 'My Course', icon: 'book-outline' },
-    { name: 'Course Progress', icon: 'trending-up-outline' },
-    { name: 'My Subscription', icon: 'card-outline' },
-    { name: 'Logout', icon: 'log-out-outline' },
-  ];
+
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
-      <Text style={styles.email}>{userDetail?.email}</Text>
+      <Text style={styles.pageTitle}>Profile</Text>
 
-      {menuItems.map((item, index) => (
-        <TouchableOpacity
-          key={index}
-          style={styles.menuItem}
-          onPress={() => onMenuClick(item)}
-        >
-          <Ionicons name={item.icon} size={24} color="#333" />
-          <Text style={styles.menuText}>{item.name}</Text>
-        </TouchableOpacity>
-      ))}
+      <Image
+        source={require('../../assets/images/LOGO Image.png')} // Replace with your logo path
+        style={styles.avatar}
+      />
+      <Text style={styles.name}>{userDetail?.Name || '--'}</Text>
+      <Text style={styles.email}>{userDetail?.Email || 'anonymous@unknown.com'}</Text>
+
+      <View style={styles.menuWrapper}>
+        {menuItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={() => onMenuClick(item)}
+          >
+            <Ionicons name={item.icon} size={22} color="#333" />
+            <Text style={styles.menuText}>{item.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#fefefe',
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  email: {
-    fontSize: 16,
-    color: 'gray',
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    alignSelf: 'flex-start',
     marginBottom: 20,
   },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 5,
+  },
+  email: {
+    fontSize: 14,
+    color: 'gray',
+    marginBottom: 30,
+  },
+  menuWrapper: {
+    width: '100%',
+  },
   menuItem: {
+    backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
   },
   menuText: {
-    fontSize: 18,
-    marginLeft: 10,
+    fontSize: 16,
+    marginLeft: 14,
     color: '#333',
   },
 });
