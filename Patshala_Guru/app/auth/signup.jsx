@@ -1,9 +1,19 @@
-import { StyleSheet, Image, View, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  StyleSheet,
+  Image,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
 import React, { useState, useContext } from 'react';
 import Colors from '@/constants/Colors';
 import { TextInput } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from './../../config/firebaseConfig';
 import { UserDetailContext } from './../../context/UserDetailContext';
@@ -13,66 +23,79 @@ export default function SignUp() {
   const [Name, setName] = useState('');
   const [Email, setEmail] = useState('');
   const [Password, setPassword] = useState('');
+  const { setUserDetail } = useContext(UserDetailContext);
 
-  const { userDetail, setUserDetail } = useContext(UserDetailContext);
+  const CreateNewAccount = async () => {
+    if (!Name || !Email || !Password) {
+      Alert.alert('Incomplete Info', 'Please fill in all fields.');
+      return;
+    }
 
-  const CreateNewAccount = () => {
-    createUserWithEmailAndPassword(auth, Email, Password)
-      .then(async (Resp) => {
-        const user = Resp.user;
-        console.log('User created successfully:', user);
-        await SaveUser(user);
-        router.replace('/(tabs)/home');
-      })
-      .catch(e => {
-        console.error('Error creating user:', e);
-        alert(e.message);
-      });
-  };
+    try {
+      // Create user in Firebase Auth
+      const resp = await createUserWithEmailAndPassword(auth, Email, Password);
+      const user = resp.user;
 
-  const SaveUser = async (user) => {
-    const data = {
-      Name,
-      Email,
-      member: false,
-      uid: user?.uid,
-    };
-    await setDoc(doc(db, "users", Email), data);
-    setUserDetail(data);
+      // Update Firebase display name (optional)
+      await updateProfile(user, { displayName: Name });
+
+      // Prepare user data
+      const userData = {
+        Name,
+        Email,
+        member: false,
+        uid: user.uid,
+        createdAt: new Date(),
+      };
+
+      // Save to Firestore
+      await setDoc(doc(db, 'users', user.uid), userData);
+      setUserDetail(userData);
+
+      console.log('✅ User created & saved successfully');
+      router.replace('/(tabs)/home');
+    } catch (e) {
+      console.error('❌ Error during signup:', e);
+      Alert.alert('Signup Error', e.message || 'Something went wrong.');
+    }
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Image source={require('./../../assets/images/LOGO Image.png')} style={styles.logo} />
+        <Image
+          source={require('./../../assets/images/LOGO Image.png')}
+          style={styles.logo}
+        />
 
         <Text style={styles.title}>Sign Up</Text>
         <Text style={styles.description}>Create a new account to get started</Text>
 
         <TextInput
-          placeholder='Enter your Name'
+          placeholder="Enter your Name"
           value={Name}
           onChangeText={setName}
           style={styles.inputText}
         />
         <TextInput
-          placeholder='Enter your Email'
+          placeholder="Enter your Email"
           value={Email}
           onChangeText={setEmail}
-          keyboardType='email-address'
+          keyboardType="email-address"
           style={styles.inputText}
+          autoCapitalize="none"
         />
         <TextInput
-          placeholder='Create a Password'
+          placeholder="Create a Password"
           value={Password}
           onChangeText={setPassword}
-          secureTextEntry={true}
+          secureTextEntry
           style={styles.inputText}
         />
 
@@ -80,9 +103,13 @@ export default function SignUp() {
           <Text style={styles.signupButtonText}>Create Account</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push("/auth/signin")} style={styles.alreadyHaveAccountText}>
+        <TouchableOpacity
+          onPress={() => router.push('/auth/signin')}
+          style={styles.alreadyHaveAccountText}
+        >
           <Text style={styles.signInText}>
-            Already have an account? <Text style={styles.signInBold}>Sign In</Text>
+            Already have an account?{' '}
+            <Text style={styles.signInBold}>Sign In</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -127,28 +154,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     padding: 15,
     borderRadius: 50,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 70,
     width: '80%',
   },
   signupButtonText: {
     color: Colors.black,
     fontSize: 20,
-    fontFamily: "Outfit-Bold",
+    fontFamily: 'Outfit-Bold',
   },
   alreadyHaveAccountText: {
-    color: Colors.black,
-    textAlign: "center",
-    marginTop: 2,
+    marginTop: 20,
   },
   signInText: {
     color: Colors.black,
-    textAlign: "center",
-    fontFamily: "Outfit-Bold",
+    textAlign: 'center',
+    fontFamily: 'Outfit-Bold',
   },
   signInBold: {
     color: Colors.primary,
-    fontFamily: "Outfit-Bold",
-    textDecorationLine: "underline",
+    fontFamily: 'Outfit-Bold',
+    textDecorationLine: 'underline',
   },
 });

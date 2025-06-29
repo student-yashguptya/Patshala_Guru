@@ -36,9 +36,9 @@ export default function Header() {
     }}>Let's Get Started !</Text>
     </View>
 
-    <TouchableOpacity>
+    {/* <TouchableOpacity>
         <Ionicons name="settings-sharp" size={32} color="black" />
-    </TouchableOpacity>
+    </TouchableOpacity> */}
     </View>
   )
 }

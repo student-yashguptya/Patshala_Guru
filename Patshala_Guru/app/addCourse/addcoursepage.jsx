@@ -33,6 +33,13 @@ export default function AddCoursePage() {
   const bannerKeys = Object.keys(imageAssets);
 
   const onGenerateTopic = async () => {
+
+    // if(userDetail?.member==false)
+    // { 
+    //   router.push('/Subscription/subscriptionOption')
+    //   return;
+    // }
+
     if (!courseName.trim()) return;
     setLoading(true);
     try {

@@ -31,7 +31,7 @@ export default function NoCourse() {
       >You Don't Have Any Course</Text>
 
       <Button text={'+ Create New Course'} onPress={()=> router.push('/addCourse/addcoursepage')}/>
-      <Button text={'Explore Existing Courses'}
+      <Button text={'Explore Existing Courses'} onPress={()=> router.push('/(tabs)/explore')}
       type='outline'/>
       
     </View>

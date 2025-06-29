@@ -23,29 +23,40 @@ export default function SignIn() {
   const router = useRouter();
   const [Email, setEmail] = useState('');
   const [Password, setPassword] = useState('');
-  const { userDetail, setUserDetail } = useContext(UserDetailContext);
+  const { setUserDetail } = useContext(UserDetailContext);
   const [loading, setLoading] = useState(false);
 
   const onSignInClick = () => {
+    if (!Email || !Password) {
+      ToastAndroid.show('Please enter email and password', ToastAndroid.SHORT);
+      return;
+    }
+
     setLoading(true);
     signInWithEmailAndPassword(auth, Email, Password)
       .then(async (resp) => {
         console.log('User signed in successfully:', resp.user);
-        await getUserDetail();
+        await getUserDetail(resp.user.uid);
         setLoading(false);
         router.replace('/(tabs)/home');
       })
       .catch((e) => {
-        console.log(e);
+        console.log('Login error:', e.message);
         setLoading(false);
         ToastAndroid.show('Incorrect email or password', ToastAndroid.BOTTOM);
       });
   };
 
-  const getUserDetail = async () => {
-    const result = await getDoc(doc(db, 'users', Email));
-    console.log(result.data());
-    setUserDetail(result.data());
+  const getUserDetail = async (uid) => {
+    const result = await getDoc(doc(db, 'users', uid));
+    if (result.exists()) {
+      const data = result.data();
+      console.log('User data:', data);
+      setUserDetail(data);
+    } else {
+      console.warn('No user document found');
+      ToastAndroid.show('User profile missing. Please sign up again.', ToastAndroid.LONG);
+    }
   };
 
   return (

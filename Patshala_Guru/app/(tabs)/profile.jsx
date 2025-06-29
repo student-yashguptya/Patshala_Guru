@@ -6,15 +6,13 @@ import {
   Alert,
   StyleSheet,
   Image,
-
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 import { UserDetailContext } from './../../context/UserDetailContext';
-
-
+import Colors from '@/constants/Colors'; // ✅ Import Colors
 
 export default function Profile() {
   const { userDetail, setUserDetail } = useContext(UserDetailContext);
@@ -73,14 +71,12 @@ export default function Profile() {
     }
   };
 
-
-
   return (
     <View style={styles.container}>
       <Text style={styles.pageTitle}>Profile</Text>
 
       <Image
-        source={require('../../assets/images/LOGO Image.png')} // Replace with your logo path
+        source={require('../../assets/images/LOGO Image.png')}
         style={styles.avatar}
       />
       <Text style={styles.name}>{userDetail?.Name || '--'}</Text>
@@ -93,7 +89,7 @@ export default function Profile() {
             style={styles.menuItem}
             onPress={() => onMenuClick(item)}
           >
-            <Ionicons name={item.icon} size={22} color="#333" />
+            <Ionicons name={item.icon} size={22} color={Colors.primary} />
             <Text style={styles.menuText}>{item.name}</Text>
           </TouchableOpacity>
         ))}

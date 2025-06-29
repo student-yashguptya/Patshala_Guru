@@ -30,31 +30,3 @@ export const imageAssets = {
 };
 
 export const CourseCategory = ["Tech & Coding", "Business & Finance", "Health & Fitness", "Science & Engineering", "Arts & Creativity"]
-
-export const ProfileMenu = [
-    {
-        name: 'Add Course',
-        icon: 'add-outline', //Ionic Icons 
-        path: '/addCourse'
-    },
-    {
-        name: 'My Course',
-        icon: 'book', //Ionic Icons 
-        path: '/(tabs)/home'
-    },
-    {
-        name: 'Course Progress',
-        icon: 'analytics-outline', //Ionic Icons 
-        path: '/(tabs)/progress'
-    },
-    {
-        name: 'My Subscription',
-        icon: 'shield-checkmark', //Ionic Icons 
-        path: ''
-    },
-    {
-        name: 'Logout',
-        icon: 'log-out', //Ionic Icons 
-        path: '/login'
-    }
-]
