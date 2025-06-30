@@ -62,7 +62,7 @@ export default function Profile() {
           router.push('/(tabs)/progress');
           break;
         case 'My Subscription':
-          router.push('/');
+          router.push('/Subscription/mysubscription');
           break;
         default:
           Alert.alert(menu.name);

@@ -1,4 +1,3 @@
-
 import {
   View,
   Text,
@@ -7,38 +6,64 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import Colors from '../../constants/Colors';
 import Button from '../../Shared/button';
 import { prompt } from '@/constants/Prompts';
 import { generateCourseOutline } from '../../config/geminiApi';
 import { db } from './../../config/firebaseConfig';
 import { UserDetailContext } from './../../context/UserDetailContext';
-import { useRouter } from 'expo-router';
-import { doc, setDoc } from 'firebase/firestore';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { imageAssets } from '../../constants/Option';
 
 const GEMINI_API_KEY = 'AIzaSyDMvaJmysUMCMvA51vTxAeFZkYk9PrzWwo';
 
 export default function AddCoursePage() {
   const [loading, setLoading] = useState(false);
+  const [checkingMembership, setCheckingMembership] = useState(true);
   const [courseName, setCourseName] = useState('');
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopics] = useState([]);
   const [courseContent, setCourseContent] = useState('');
   const { userDetail } = useContext(UserDetailContext);
+  const { justSubscribed } = useLocalSearchParams();
+  const [hasTriggeredAutoTopicGen, setHasTriggeredAutoTopicGen] = useState(false);
   const router = useRouter();
 
   const bannerKeys = Object.keys(imageAssets);
 
-  const onGenerateTopic = async () => {
+  useEffect(() => {
+  if (!userDetail?.Email) return;
 
-    // if(userDetail?.member==false)
-    // { 
-    //   router.push('/Subscription/subscriptionOption')
-    //   return;
-    // }
+  const unsub = onSnapshot(doc(db, 'Users', userDetail.Email), docSnap => {
+    const data = docSnap.data();
+    const isMember = data?.member === true;
+
+    setCheckingMembership(false);
+
+    if (isMember) {
+      if (
+        justSubscribed === 'true' &&
+        !hasTriggeredAutoTopicGen &&
+        courseName.trim()
+      ) {
+        setHasTriggeredAutoTopicGen(true);
+        onGenerateTopic();
+      }
+    }
+  });
+
+  return () => unsub();
+}, [userDetail?.Email, courseName, justSubscribed]);
+
+  const onGenerateTopic = async () => {
+    if (userDetail?.member === false) {
+      router.push('/Subscription/subscriptionOption');
+      return;
+    }
 
     if (!courseName.trim()) return;
     setLoading(true);
@@ -58,7 +83,6 @@ export default function AddCoursePage() {
       }
       setTopics(parsedTopics);
     } catch (error) {
-      console.error('Topic Generation Failed:', error);
       Alert.alert('Error', 'Failed to generate topics');
     }
     setLoading(false);
@@ -74,34 +98,22 @@ export default function AddCoursePage() {
     }
   };
 
-  const isTopicSelected = topic => {
-    return selectedTopic.includes(topic);
-  };
+  const isTopicSelected = topic => selectedTopic.includes(topic);
 
-  // Helper function to extract and validate JSON from response
-  const extractValidJSON = (rawText) => {
+  const extractValidJSON = rawText => {
     try {
-      // First, try to parse the entire response as JSON
       return JSON.parse(rawText);
     } catch (e) {
-      // If that fails, try to extract JSON from within the text
       const jsonStart = rawText.indexOf('{');
       const jsonEnd = rawText.lastIndexOf('}');
-      
       if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
         throw new Error('No valid JSON found in response');
       }
-      
       const jsonString = rawText.slice(jsonStart, jsonEnd + 1);
-      
-      // Validate the JSON by attempting to parse it
       const parsed = JSON.parse(jsonString);
-      
-      // Additional validation to ensure it has the expected structure
       if (!parsed.courses || !Array.isArray(parsed.courses)) {
         throw new Error('Invalid JSON structure - missing courses array');
       }
-      
       return parsed;
     }
   };
@@ -109,43 +121,31 @@ export default function AddCoursePage() {
   const onGenerateCourse = async () => {
     if (selectedTopic.length === 0) return;
     setLoading(true);
-    
+
     try {
       const topicsAsString = selectedTopic.join(', ');
       const coursePrompt = `${topicsAsString}\n${prompt.COURSE}`;
 
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      
       const body = {
         contents: [{ parts: [{ text: coursePrompt }] }],
-        generationConfig: {
-          maxOutputTokens: 8192, // Increase token limit for complete response
-          temperature: 0.7,
-        }
+        generationConfig: { maxOutputTokens: 8192, temperature: 0.7 },
       };
 
-      console.log('Sending request to Gemini API...');
-      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      console.log('Full Gemini Response:', JSON.stringify(data, null, 2));
 
-      // Check if response was blocked or has safety issues
       if (data.candidates?.[0]?.finishReason === 'SAFETY') {
-        throw new Error('Response was blocked due to safety concerns. Try modifying your topic selection.');
+        throw new Error('Response blocked due to safety concerns.');
       }
-
       if (data.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
-        throw new Error('Response was truncated due to length. Try selecting fewer topics.');
+        throw new Error('Response too long. Try fewer topics.');
       }
 
       const rawText =
@@ -153,47 +153,30 @@ export default function AddCoursePage() {
         data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.text ||
         '';
 
-      if (!rawText.trim()) {
-        throw new Error('Empty response from Gemini API');
-      }
-
-      console.log('Raw response text:', rawText);
+      if (!rawText.trim()) throw new Error('Empty response from Gemini API');
       setCourseContent(rawText.trim());
 
-      // Parse and validate JSON with better error handling
       let parsed;
       try {
         parsed = extractValidJSON(rawText);
-        console.log('Parsed JSON:', JSON.stringify(parsed, null, 2));
       } catch (parseError) {
-        console.error('JSON Parsing Error:', parseError);
-        console.error('Raw text that failed to parse:', rawText);
         Alert.alert(
-          'Parsing Error', 
-          `Failed to parse the generated course content. The response might be incomplete or malformed. Please try again with fewer topics.\n\nError: ${parseError.message}`
+          'Parsing Error',
+          `Course content could not be parsed. Try again.\n\nError: ${parseError.message}`
         );
         setLoading(false);
         return;
       }
 
-      // Validate the structure
-      if (!parsed.courses || !Array.isArray(parsed.courses) || parsed.courses.length === 0) {
-        throw new Error('Invalid course structure - no courses found in response');
+      if (!parsed.courses || parsed.courses.length === 0) {
+        throw new Error('No valid courses found in response');
       }
 
-      // Save courses to Firestore
       const courseArray = parsed.courses;
-      console.log(`Saving ${courseArray.length} courses to Firestore...`);
-      
       for (const course of courseArray) {
         const DocID = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
-        
-        // Validate required fields
-        if (!course.courseTitle) {
-          console.warn('Course missing title, skipping:', course);
-          continue;
-        }
-        
+        if (!course.courseTitle) continue;
+
         await setDoc(doc(db, 'Courses', DocID), {
           courseTitle: course.courseTitle,
           description: course.description || 'No description provided',
@@ -206,43 +189,44 @@ export default function AddCoursePage() {
           quiz: course.quiz || [],
           flashcards: course.flashcards || [],
           qa: course.qa || [],
-          DocID: DocID
+          DocID: DocID,
         });
-        
-        console.log(`Saved course: ${course.courseTitle} with ID: ${DocID}`);
       }
 
-      Alert.alert('Success', `${courseArray.length} course(s) successfully created and saved!`);
+      Alert.alert('Success', `${courseArray.length} course(s) created!`);
       router.push('/(tabs)/home');
-      
     } catch (error) {
-      console.error('Course Generation Error:', error);
-      Alert.alert(
-        'Error', 
-        `Failed to generate or save course: ${error.message}\n\nPlease try again with different topics or fewer selections.`
-      );
+      Alert.alert('Error', `Failed to generate/save course: ${error.message}`);
     }
-    
+
     setLoading(false);
   };
+
+  if (checkingMembership) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Checking membership...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Create New Course</Text>
       <Text style={styles.subtitle}>What you want to learn today?</Text>
       <Text style={styles.description}>
-        Please enter the course name you want to create. This will help us to
-        create a better course for you. (Ex: Learn Python, Digital Marketing,
-        10th Science Chapters, etc.)
+        Enter the course name (Ex: Learn Python, Digital Marketing, etc.)
       </Text>
 
       <TextInput
-        placeholder='(Ex: Learn Python, Digital Marketing ,10th Science Chapters, etc.)'
+        placeholder='(Ex: Learn Python, Digital Marketing, etc.)'
         style={styles.input}
         numberOfLines={4}
         multiline={true}
         value={courseName}
         onChangeText={setCourseName}
+        autoFocus={!courseName}
       />
 
       <Button
@@ -254,7 +238,7 @@ export default function AddCoursePage() {
 
       <View style={{ marginTop: 20 }}>
         <Text style={styles.topicHeader}>
-          Select all topics which you want to add in the course
+          Select topics to include in the course
         </Text>
 
         {topics.length > 0 && (
@@ -298,7 +282,7 @@ export default function AddCoursePage() {
         {courseContent && (
           <View style={{ marginBottom: 30 }}>
             <Text style={styles.debugText}>
-              Debug: Course content generated successfully
+              ✅ Debug: Course content generated successfully
             </Text>
           </View>
         )}
@@ -363,5 +347,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.gray,
     fontStyle: 'italic',
+  },
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    fontFamily: 'Outfit-Medium',
+    fontSize: 16,
+    marginTop: 10,
+    color: Colors.primary,
   },
 });
