@@ -41,7 +41,7 @@ export default function Intro({ course, enroll }) {
           },
           {
             text: 'View Plans',
-            onPress: () => route.replace('/subscription/SubscriptionOption'),
+            onPress: () => route.replace('/Subscription/s ubscriptionOption'),
           },
         ]
       );

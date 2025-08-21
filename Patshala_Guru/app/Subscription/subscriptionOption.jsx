@@ -159,6 +159,9 @@ export default function SubscriptionOption() {
       <TouchableOpacity onPress={() => router.back()}>
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
+      <Text 
+      style={{marginTop:30,fontFamily:"Outfit-SemiBold",fontSize:12,color:Colors.error,alignItems:'center'}}
+      >(login again into your account to enable the subscription )</Text>
     </ScrollView>
   );
 }
