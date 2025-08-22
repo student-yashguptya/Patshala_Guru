@@ -45,7 +45,7 @@ export default function Index() {
         style={styles.container2}>
           <Text
             style={styles.welcomeText}>
-            Welcome to Patshala Guru
+            Welcome to StudyGenie
           </Text>
           <Text
             style={styles.descriptionText}>
